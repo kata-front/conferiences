@@ -3,9 +3,9 @@ import { io, type Socket } from "socket.io-client";
 class SocketManager {
   private static instance: Socket | null = null;
 
-  public static getInstance(): Socket {
+  public static getInstance(url?: string): Socket {
     if (!SocketManager.instance) {
-        SocketManager.instance = io('http://localhost:3000');
+        SocketManager.instance = io(url || 'http://localhost:3000');
     }
     return SocketManager.instance!;
   }
@@ -18,4 +18,6 @@ class SocketManager {
   }
 }
 
-export default SocketManager;
+const useSocket = (url?: string) => SocketManager.getInstance(url);
+
+export default useSocket

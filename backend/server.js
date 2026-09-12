@@ -3,7 +3,12 @@ const app = express();
 const http = require('http').createServer(app);
 const { Server } = require('socket.io')
 
-const io = new Server(http);
+const io = new Server(http, {
+    cors: {
+        origin: '*',
+        methods: ['GET', 'POST']
+    }
+});
 const PORT = process.env.PORT || 3000;
 
 function getAllRooms() {
@@ -18,6 +23,13 @@ io.on('connection', (socket) => {
     const rooms = getAllRooms()
 
     socket.emit('ROOMS_LIST', rooms)
+
+    socket.on('CREATE_ROOM', roomId => {
+        socket.join(roomId)
+        const rooms = getAllRooms()
+        socket.emit('ROOMS_LIST', rooms)
+    })
+
 
     socket.on('disconnect', () => {
         console.log('user disconnected');
