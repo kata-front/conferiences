@@ -1,0 +1,23 @@
+# Общее
+.DS_Store
+*.log
+
+# Frontend
+/frontend/package-lock.json
+frontend/public
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.env
+frontend/.env.local
+frontend/.vite/
+frontend/coverage/
+
+# Backend
+backend/package-lock.json
+backend/public
+backend/node_modules/
+backend/.env
+backend/dist/
+backend/logs/
+backend/uploads/
