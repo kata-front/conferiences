@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { v4 } from 'uuid';
 
 import useSocket from './utils/hooks/socket/useSocket';
+import { useNavigate } from 'react-router';
 
 const SOCKET_URL = 'http://localhost:3000';
 
@@ -9,8 +10,11 @@ function App() {
   const socket = useSocket(SOCKET_URL);
   const [rooms, setRooms] = useState<string[]>([]);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     const handleRoomsList = (rooms: string[]) => {
+      console.log(rooms);
       setRooms(rooms);
     };
 
@@ -21,17 +25,15 @@ function App() {
     };
   }, [socket]);
 
-  const createRoom = useCallback(() => {
-    const roomId = v4();
-    socket.emit('CREATE_ROOM', roomId);
-  }, [socket]);
+  const onSubmit = useCallback((id?: string) => {
+    if (!id) {
+      const id = v4();
 
-  const joinRoom = useCallback(
-    (roomId: string) => () => {
-      socket.emit('JOIN_ROOM', roomId);
-    },
-    [socket],
-  );
+      navigate(`/room/${id}`);
+    } else {
+      navigate(`/room/${id}`);
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-linear-to-br from-slate-950 via-indigo-950 to-slate-900 text-slate-100 antialiased">
@@ -52,7 +54,7 @@ function App() {
         <div className="mb-10">
           <button
             type="button"
-            onClick={createRoom}
+            onClick={() => onSubmit()}
             className="group inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-900/40 transition-all hover:-translate-y-0.5 hover:bg-indigo-500 hover:shadow-xl hover:shadow-indigo-800/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 active:translate-y-0"
           >
             <svg
@@ -112,7 +114,7 @@ function App() {
                 <li key={roomId}>
                   <button
                     type="button"
-                    onClick={joinRoom(roomId)}
+                    onClick={() => onSubmit(roomId)}
                     className="group flex w-full items-center justify-between rounded-xl border border-slate-800 bg-slate-900/60 px-4 py-3.5 text-left transition-all hover:border-indigo-500/50 hover:bg-slate-800/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950"
                   >
                     <div className="flex items-center gap-3 overflow-hidden">
