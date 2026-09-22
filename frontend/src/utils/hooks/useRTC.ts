@@ -35,7 +35,10 @@ const useWebRTC = (roomId: string) => {
       })
       .catch(console.error);
 
-    addNewClient("LOCAL_VIDEO");
+    addNewClient("LOCAL_VIDEO", () => {
+      peerMediaElements.current["LOCAL_VIDEO"]!.srcObject = localMediaStream.current;
+
+    });
   }, []);
 
   useEffect(() => {
