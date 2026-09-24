@@ -13,9 +13,10 @@ const io = new Server(http, {
 const PORT = process.env.PORT || 3000;
 
 function getAllRooms() {
-    const rooms = Array.from(io.sockets.adapter.rooms.keys())
-       .filter(roomId => validate(roomId) && version(roomId) === 4)
-    return rooms
+    const allRooms = Array.from(io.sockets.adapter.rooms.keys());
+    const filtered = allRooms.filter(roomId => validate(roomId) && version(roomId) === 4);
+
+    return filtered;
 }
 
 io.on('connection', (socket) => {
@@ -25,12 +26,37 @@ io.on('connection', (socket) => {
 
     socket.emit('ROOMS_LIST', rooms)
 
-    socket.on('CREATE_ROOM', roomId => {
+    socket.on('JOIN_ROOM', (roomId) => {
+        const { rooms: joinedRooms } = socket;
+
+        if (Array.from(joinedRooms).includes(roomId)) {
+            return console.warn('user already in room');
+        }
+
         socket.join(roomId)
-        const rooms = getAllRooms()
-        io.emit('ROOMS_LIST', rooms)
+        io.emit('ROOMS_LIST', getAllRooms())
+
+        const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
+
+        clients.forEach(clientId => {
+            io.to(clientId).emit('ADD_PEER', {
+                peerId: socket.id,
+                initiator: false
+            })
+
+            socket.emit('ADD_PEER', {
+                peerId: clientId,
+                initiator: true
+            })
+        })
+
+
     })
 
+    socket.on('LEAVE_ROOM', (roomId) => {
+        socket.leave(roomId)
+        io.emit('ROOMS_LIST', getAllRooms())
+    })
 
     socket.on('disconnect', () => {
         console.log('user disconnected');

@@ -31,6 +31,7 @@ const useWebRTC = (roomId: string) => {
 
     getMedia()
       .then(() => {
+        console.log(roomId);
         socket.emit("JOIN_ROOM", roomId);
 
         addNewClient("LOCAL_VIDEO", () => {
@@ -41,6 +42,11 @@ const useWebRTC = (roomId: string) => {
         });
       })
       .catch(console.error);
+
+      return () => {
+        localMediaStream.current?.getTracks().forEach((track) => track.stop());
+        socket.emit("LEAVE_ROOM", roomId);
+      }
   }, []);
 
   const addPeerMediaElement = useCallback(
