@@ -39,6 +39,8 @@ io.on('connection', (socket) => {
         const clients = Array.from(io.sockets.adapter.rooms.get(roomId) || []);
 
         clients.forEach(clientId => {
+            if (clientId === socket.id) return;
+
             io.to(clientId).emit('ADD_PEER', {
                 peerId: socket.id,
                 initiator: false
@@ -50,19 +52,44 @@ io.on('connection', (socket) => {
             })
         })
 
-
     })
 
     socket.on('LEAVE_ROOM', (roomId) => {
+        if (!roomId || !socket.rooms.has(roomId)) return;
+
+        socket.to(roomId).emit('REMOVE_PEER', { peerId: socket.id })
         socket.leave(roomId)
         io.emit('ROOMS_LIST', getAllRooms())
     })
 
+    socket.on('RELAY_SDP', ({ peerId, remoteDescription }) => {
+        io.to(peerId).emit('SESSION_DESCRIPTION', {
+            peerId: socket.id,
+            remoteDescription
+        })
+    })
+
+    socket.on('RELAY_ICE_CANDIDATE', ({ target, candidate }) => {
+        io.to(target).emit('ICE_CANDIDATE', {
+            peerId: socket.id,
+            candidate
+        })
+    })
+
+    socket.on('disconnecting', () => {
+        socket.rooms.forEach((roomId) => {
+            if (roomId === socket.id) return;
+
+            socket.to(roomId).emit('REMOVE_PEER', { peerId: socket.id })
+        })
+    })
+
     socket.on('disconnect', () => {
         console.log('user disconnected');
+        io.emit('ROOMS_LIST', getAllRooms())
     });
 })
 
 http.listen(PORT, () => {
-    console.log('listening on *:3000');
+    console.log(`listening on *:${PORT}`);
 });

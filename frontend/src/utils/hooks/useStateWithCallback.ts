@@ -1,16 +1,18 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 
-const useStateWithCallback = <T>(initialState: T): [T, (newState: T, cb?: () => void) => void] => {
+type Updater<T> = T | ((prevState: T) => T)
+
+const useStateWithCallback = <T>(initialState: T): [T, (newState: Updater<T>, cb?: () => void) => void] => {
     const [state, setState] = useState<T>(initialState)
     const callback = useRef<(() => void) | null>(null)
 
-    const updateState = (newState: T, cb?: () => void) => {
+    const updateState = useCallback((newState: Updater<T>, cb?: () => void) => {
         if (cb) {
             callback.current = cb
         }
 
         setState(newState)
-    }
+    }, [])
 
     useEffect(() => {
         if (callback.current) {
