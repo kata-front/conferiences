@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useRef } from "react";
 import useStateWithCallback from "./useStateWithCallback";
 import useSocket from "./socket/useSocket";
+import useControllTrack from "./useControllTrack";
 
 const useWebRTC = (roomId: string) => {
   const socket = useSocket();
@@ -26,7 +27,13 @@ const useWebRTC = (roomId: string) => {
   });
 
   useEffect(() => {
-    const handleNewPeer = async ({ peerId, initiator }: { peerId: string; initiator: boolean }) => {
+    const handleNewPeer = async ({
+      peerId,
+      initiator,
+    }: {
+      peerId: string;
+      initiator: boolean;
+    }) => {
       if (peerId in peerConnections.current) {
         console.warn(`Already connected to peer ${peerId}`);
         return;
@@ -43,69 +50,86 @@ const useWebRTC = (roomId: string) => {
             candidate: event.candidate,
           });
         }
-      }
+      };
 
       peerConnections.current[peerId].ontrack = ({ streams: [stream] }) => {
         addNewClient(peerId, () => {
           if (peerMediaElements.current[peerId]) {
             peerMediaElements.current[peerId].srcObject = stream;
           }
-        })
-      }
+        });
+      };
 
       localMediaStream.current?.getTracks().forEach((track) => {
-        peerConnections.current[peerId].addTrack(track, localMediaStream.current!);
+        peerConnections.current[peerId].addTrack(
+          track,
+          localMediaStream.current!,
+        );
       });
 
       if (initiator) {
         const offer = await peerConnections.current[peerId].createOffer();
         await peerConnections.current[peerId].setLocalDescription(offer);
 
-        socket.emit('RELAY_SDP', {
+        socket.emit("RELAY_SDP", {
           peerId,
-          remoteDescription: offer
-        })
+          remoteDescription: offer,
+        });
       }
-    }
+    };
 
     socket.on("ADD_PEER", handleNewPeer);
 
     return () => {
       socket.off("ADD_PEER", handleNewPeer);
     };
-  }, [addNewClient, socket])
+  }, [addNewClient, socket]);
 
   useEffect(() => {
-    const handleIceCandidate = async ({ peerId, candidate }: { peerId: string; candidate: RTCIceCandidate }) => {
+    const handleIceCandidate = async ({
+      peerId,
+      candidate,
+    }: {
+      peerId: string;
+      candidate: RTCIceCandidate;
+    }) => {
       await peerConnections.current[peerId].addIceCandidate(candidate);
-    }
+    };
 
     socket.on("ICE_CANDIDATE", handleIceCandidate);
 
     return () => {
       socket.off("ICE_CANDIDATE", handleIceCandidate);
     };
-  }, [socket])
+  }, [socket]);
 
   useEffect(() => {
-    const setRemoteDescription = async ({ peerId, remoteDescription }: { peerId: string; remoteDescription: RTCSessionDescription }) => {
-      await peerConnections.current[peerId].setRemoteDescription(remoteDescription);
+    const setRemoteDescription = async ({
+      peerId,
+      remoteDescription,
+    }: {
+      peerId: string;
+      remoteDescription: RTCSessionDescription;
+    }) => {
+      await peerConnections.current[peerId].setRemoteDescription(
+        remoteDescription,
+      );
 
       const answer = await peerConnections.current[peerId].createAnswer();
       await peerConnections.current[peerId].setLocalDescription(answer);
 
-      socket.emit('RELAY_SDP', {
+      socket.emit("RELAY_SDP", {
         peerId,
-        remoteDescription: answer
-      })
-    }
+        remoteDescription: answer,
+      });
+    };
 
     socket.on("SESSION_DESCRIPTION", setRemoteDescription);
 
     return () => {
       socket.off("SESSION_DESCRIPTION", setRemoteDescription);
     };
-  }, [socket])
+  }, [socket]);
 
   useEffect(() => {
     const handleRemovePeer = ({ peerId }: { peerId: string }) => {
@@ -128,7 +152,7 @@ const useWebRTC = (roomId: string) => {
     return () => {
       socket.off("REMOVE_PEER", handleRemovePeer);
     };
-  }, [socket, updateClients])
+  }, [socket, updateClients]);
 
   useEffect(() => {
     async function getMedia() {
@@ -152,10 +176,10 @@ const useWebRTC = (roomId: string) => {
       })
       .catch(console.error);
 
-      return () => {
-        localMediaStream.current?.getTracks().forEach((track) => track.stop());
-        socket.emit("LEAVE_ROOM", roomId);
-      }
+    return () => {
+      localMediaStream.current?.getTracks().forEach((track) => track.stop());
+      socket.emit("LEAVE_ROOM", roomId);
+    };
   }, [addNewClient, roomId, socket]);
 
   const addPeerMediaElement = useCallback(
@@ -173,9 +197,20 @@ const useWebRTC = (roomId: string) => {
     [],
   );
 
+  const {
+    enabledVideoTrack,
+    setEnabledVideoTrack,
+    enabledAudioTrack,
+    setEnabledAudioTrack,
+  } = useControllTrack(localMediaStream.current!);
+
   return {
     clients,
     addPeerMediaElement,
+    enabledVideoTrack,
+    setEnabledVideoTrack,
+    enabledAudioTrack,
+    setEnabledAudioTrack,
   };
 };
 
