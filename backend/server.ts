@@ -1,3 +1,5 @@
+import { Socket } from "socket.io";
+
 const express = require('express');
 const app = express();
 const http = require('http').createServer(app);
@@ -19,7 +21,7 @@ function getAllRooms() {
     return filtered;
 }
 
-io.on('connection', (socket) => {
+io.on('connection', (socket: Socket) => {
     console.log('a user connected');
 
     const rooms = getAllRooms()
